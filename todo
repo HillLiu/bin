@@ -1,0 +1,3 @@
+#!/bin/bash
+/Users/hroohill/Dropbox/macapps/MacVim.app/Contents/MacOS/MacVim ~/Dropbox/wiki/Yahoo_text/ToDoComments.txt &
+exit;
