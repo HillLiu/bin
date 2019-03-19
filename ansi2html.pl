@@ -111,7 +111,4 @@ print <<'__HTML__';
 </html>
 __HTML__
 
-# Local Variables:
-# mode: cperl
-# coding: euc-japan-unix
 # End:
