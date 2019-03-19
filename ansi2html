@@ -1,0 +1,3 @@
+#!/bin/bash
+
+less -r $1 | env ansi2html.pl $3 > $2 
