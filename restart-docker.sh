@@ -18,3 +18,8 @@ sleep 3;
 echo "Start all dokku--- Begin -->"
 sudo dokku ps:startall
 echo "Start all dokku--- End --/>"
+sleep 3;
+
+echo "Cleanup dokku--- Begin -->"
+sudo dokku cleanup
+echo "Cleanup dokku--- End --/>"
