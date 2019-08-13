@@ -6,7 +6,6 @@ if [ "$(whoami)" != "root" ]; then
 fi
 
 IP_SAVE="/sbin/iptables-save"
-IP_RESTORE="/sbin/iptables-restore"
 IP_SAVE_FILE="/dev/shm/iptables.save"
 IPTABLES="/home/sys/bin/iptable-util"
 MY_HOST=`hostname | awk -F. '{print $1}'`
@@ -40,8 +39,4 @@ fi
 
 if [ -x "$MY_IPTABLES" ]; then
 	$MY_IPTABLES 
-fi
-
-if [[ -e $IP_SAVE_FILE && -x $IP_RESTORE ]]; then
-	$IP_RESTORE < $IP_SAVE_FILE
 fi
