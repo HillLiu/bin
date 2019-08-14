@@ -17,7 +17,7 @@ echo "Stop all dokku--- End --/>"
 sleep 3;
 
 if [[ -x "$IPTABLES" && -x "$MY_IPTABLES" ]]; then
-	$IPTABLES --stop
+	$IPTABLES --clean
 fi
 
 echo "Restart Docker --- Begin -->"
