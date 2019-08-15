@@ -5,8 +5,6 @@ if [ "$(whoami)" != "root" ]; then
     exit 1
 fi
 
-IP_SAVE="/sbin/iptables-save"
-IP_SAVE_FILE="/dev/shm/iptables.save"
 IPTABLES="/home/sys/bin/iptable-util"
 MY_HOST=`hostname | awk -F. '{print $1}'`
 MY_IPTABLES="/home/sys/bin/support/myip_${MY_HOST}.sh"
@@ -33,10 +31,7 @@ echo "Cleanup dokku--- Begin -->"
 sudo dokku cleanup
 echo "Cleanup dokku--- End --/>"
 
-if [ -x "$IP_SAVE" ]; then
-	$IP_SAVE > $IP_SAVE_FILE 
-fi
-
-if [ -x "$MY_IPTABLES" ]; then
+if [[ -x "$IPTABLES" && -x "$MY_IPTABLES" ]]; then
+        $IPTABLES --save
 	$MY_IPTABLES 
 fi
