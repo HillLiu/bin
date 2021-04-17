@@ -10,7 +10,7 @@ MY_HOST=`hostname | awk -F. '{print $1}'`
 MY_IPTABLES="/home/sys/bin/support/myip_${MY_HOST}.sh"
 
 echo "Stop all dokku--- Begin -->"
-sudo dokku ps:stopall
+sudo dokku ps:stop --all
 echo "Stop all dokku--- End --/>"
 sleep 3;
 
@@ -23,7 +23,7 @@ systemctl restart docker.service
 echo "Restart Docker --- End --/>"
 
 echo "Start all dokku--- Begin -->"
-sudo dokku ps:startall
+sudo dokku ps:start --all
 echo "Start all dokku--- End --/>"
 sleep 3;
 
