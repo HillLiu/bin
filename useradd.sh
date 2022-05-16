@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# curl https://raw.githubusercontent.com/HillLiu/bin/master/useradd.sh | sudo --preserve-env=SSH_AUTH_SOCK env PATH=$PATH bash
+
+
 if [ "$(whoami)" != "root" ]; then
   echo "Sorry, you are not root."
   exit 1
