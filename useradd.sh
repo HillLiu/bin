@@ -11,6 +11,11 @@ fi
 moreGroup=$2
 user=$1
 
+if [ -z $user ]; then
+  echo "User account should not empty."
+  exit 2
+fi
+
 useradd $user
 mkdir -p /home/$user/.ssh
 chown -R $user:$user /home/$user
