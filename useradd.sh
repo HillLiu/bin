@@ -5,13 +5,14 @@ if [ "$(whoami)" != "root" ]; then
   exit 1
 fi
 
-group=$2
+moreGroup=$2
+user=$1
 
-useradd $1
-mkdir -p /home/$1/.ssh
-chown -R $1:$1 /home/$1
-usermod --shell /bin/bash $1
-if [ "$group" == "admin" ]; then
-  gpasswd -a $1 admin
+useradd $user
+mkdir -p /home/$user/.ssh
+chown -R $user:$user /home/$user
+usermod --shell /bin/bash $user
+if [ "$moreGroup" == "admin" ]; then
+  gpasswd -a $user admin
 fi
-echo "Add User $1"
+echo "Add User $user"
