@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# curl https://raw.githubusercontent.com/HillLiu/bin/master/useradd.sh | sudo --preserve-env=SSH_AUTH_SOCK env PATH=$PATH bash
+# curl https://raw.githubusercontent.com/HillLiu/bin/master/useradd.sh | sudo --preserve-env=SSH_AUTH_SOCK env PATH=$PATH bash -s [user] [group]
 
 
 if [ "$(whoami)" != "root" ]; then
