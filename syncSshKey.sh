@@ -9,4 +9,4 @@ fi
 
 ssh $remote mkdir -p ./.ssh
 scp $HOME/.ssh/authorized_keys $remote:./.ssh
-scp $HOME/.bash_profile $remote:./
+scp $HOME/.bash_profile $HOME/.vimrc $HOME/.screenrc $remote:./
