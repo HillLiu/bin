@@ -22,5 +22,7 @@ chown -R $user:$user /home/$user
 usermod --shell /bin/bash $user
 if [ "$moreGroup" == "admin" ]; then
   gpasswd -a $user admin
+  gpasswd -a $user docker
+  gpasswd -a $user dokku
 fi
 echo "Add User $user"
