@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# set -x
+
+argv=( "$@" )
+
+if ! which docker > /dev/null
+then
+	echo "Could not find docker! Please install docker before proceeeding."
+	exit 1
+fi
+
+if [[ $OSTYPE == 'darwin'* ]]
+then
+	platform="--platform=linux/amd64"
+fi
+
+i=0
+exported_vars=""
+volume_mappings=""
+
+# Define an array of environment variable names to capture
+variables=("BETA_FAST_DATA_EXPORT" 
+"SOURCE_DB_PASSWORD" 
+"TARGET_DB_PASSWORD" 
+"SOURCE_REPLICA_DB_PASSWORD" 
+"YB_VOYAGER_SEND_DIAGNOSTICS" 
+"YB_MASTER_PORT" 
+"YB_TSERVER_PORT" 
+"QUEUE_SEGMENT_MAX_BYTES" 
+"NUM_EVENT_CHANNELS" 
+"EVENT_CHANNEL_SIZE" 
+"MAX_EVENTS_PER_BATCH" 
+"MAX_INTERVAL_BETWEEN_BATCHES"
+"CONTROL_PLANE_TYPE"
+"YUGABYTED_DB_CONN_STRING")
+
+volume_dirs=("--export-dir" 
+"--backup-dir" 
+"--move-to" 
+"--source-ssl-cert" 
+"--source-ssl-key" 
+"--source-ssl-root-cert"
+"--table-list-file-path"
+"--exclude-table-list-file-path"
+"--assessment-metadata-dir"
+"--assessment-report-path")
+
+# Loop through the array and capture the environment variables
+for var_name in "${variables[@]}"; do
+  var=$(env | grep -E "$var_name")
+  if [[ -n "$var" ]]; then
+    exported_vars="${exported_vars} -e $var"
+  fi
+done
+
+exported_vars="${exported_vars} -e ORACLE_HOME=/usr/lib/oracle/21/client64 -e LD_LIBRARY_PATH=/usr/lib/oracle/21/client64/lib -e PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/go/bin:/usr/lib/oracle/21/client64/bin"
+
+map_host_path_inside_container() {
+		flag_name=$1
+		dir_path=$2
+		# If flag_name is "" then we have to extract it from argv
+		if [[ $flag_name == "" ]]
+		then
+			flag_name=${argv[${i}]}
+			j=$(( $i + 1))
+			argv[${j}]=$(realpath "${argv[${j}]}")
+			dir_path=${argv[${j}]}
+		fi
+		volume_name="voyager-${flag_name}"
+		# handle file paths.  If the path is a file, then the target path should be the directory of the file.
+		if [[ -f $dir_path ]]
+		then
+			dir_path=$(dirname "$dir_path")
+		fi
+		# If the OS is macOS
+		if [[ $OSTYPE == 'darwin'* ]] 
+		then
+			docker volume rm $volume_name > /dev/null 2>&1
+			docker volume create --driver local --opt type=none --opt device="${dir_path}" --opt o=bind $volume_name > /dev/null 2>&1
+			volume_mappings="${volume_mappings} -v ${volume_name}:${dir_path}"
+		else
+			volume_mappings="${volume_mappings} -v ${dir_path}:${dir_path}"
+		fi
+}
+
+while [ $i -lt $# ]
+do
+	v=${argv[${i}]}
+	if [[ ${v} == "-e" ]]
+	then
+		v="--export-dir"
+	fi
+	# if v is present in volume_dirs array
+	if [[ " ${volume_dirs[@]} " =~ " ${v} " ]]
+	then
+		map_host_path_inside_container
+		i=$(( $i + 1))
+		continue
+	fi
+	
+	if [[ ${argv[${i}]} == "--data-dir" ]]
+	then 
+		j=$(( $i + 1))
+		data_dir=${argv[${j}]}
+
+		# If the data-dir is an S3 bucket
+		if [[ $data_dir == 's3://'* ]]
+		then 
+			# Capture exported variables for aws
+			for var in $(env | grep -E '^AWS_') 
+			do
+				exported_vars="${exported_vars} -e $var"
+			done
+			s3_vol="-v ${HOME}/.aws:/root/.aws"
+		elif [[ $data_dir == 'gs://'* ]]
+		then 
+			# map gcp credentials directory
+			gcp_vol="-v ${HOME}/.config/gcloud:/root/.config/gcloud"
+		elif [[	$data_dir == 'https://'* ]]
+		then
+			# map azure credentials directory
+			azure_vol="-v ${HOME}/.azure:/root/.azure"
+			for var in $(env | grep -E '^AZURE_')
+			do 
+				exported_vars="${exported_vars} -e $var"
+			done
+		else 
+			# If the data-dir is not an S3 bucket
+			data_dir=$(realpath "$data_dir")
+			map_host_path_inside_container "data-dir" "${data_dir}"
+		fi
+	fi	
+
+	# If the flag is --oracle-tns-alias then find the exported variable TNS_ADMIN and map it to the container.  --oracle-tns-alias flag will be passed as it is.
+	if [[ ${argv[${i}]} == "--oracle-tns-alias" ]]
+	then
+		if [ -n "$TNS_ADMIN" ]; then
+  			tns_admin="$TNS_ADMIN"
+		else
+  			tns_admin="${ORACLE_HOME}/network/admin"
+		fi
+		wallet_dir=$(sed -n 's|(DIRECTORY\s*=\s*"\([^"]*\)")|\1|p' ${tns_admin}/sqlnet.ora | xargs)
+
+		tns_admin=$(realpath "$tns_admin")
+		wallet_dir=$(realpath "$wallet_dir")
+		map_host_path_inside_container "oracle-tns-alias" "${tns_admin}"
+		map_host_path_inside_container "oracle-wallet-dir" "${wallet_dir}"
+		exported_vars="${exported_vars} -e TNS_ADMIN=${tns_admin}"
+	fi
+			
+    i=$(( $i + 1))
+done
+
+if [ -t 1 ] 
+then 
+	tty="-it"
+fi
+
+dockerCmd="docker run ${exported_vars} ${tty} ${gcp_vol} ${s3_vol} ${azure_vol} ${volume_mappings} --pid=host --network=host --rm --privileged ${platform} yugabytedb/yb-voyager yb-voyager ${argv[*]}"
+
+# echo $dockerCmd
+
+$dockerCmd
